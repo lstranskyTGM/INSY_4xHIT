@@ -1,0 +1,34 @@
+{
+  "bookstore": {
+    "book": [
+      {
+        "@category": "cooking",
+        "title": {
+          "@lang": "en",
+          "#text": "Everyday Italian"
+        },
+        "author": "Giada De Laurentiis",
+        "year": "2005",
+        "price": "30.00"
+      },
+      {
+        "title": {
+          "@lang": "en",
+          "#text": "New Book"
+        },
+        "author": "New Author",
+        "year": "2023",
+        "price": "15.99"
+      },
+      {
+        "title": {
+          "@lang": "en",
+          "#text": "New Book"
+        },
+        "author": "New Author",
+        "year": "2023",
+        "price": "15.99"
+      }
+    ]
+  }
+}
