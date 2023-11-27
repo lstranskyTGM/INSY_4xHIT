@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>JSON-File-Reader</title>
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</head>
+<body>
+  <h1>JSON File Reader</h1>
+  <form id="jsonForm">
+    <div class="input-container">
+      <label for="fileInput" class="file-label">Choose JSON File</label>
+      <input type="file" id="fileInput" class="file-input" name="fileInput" onchange="fileLoad()">
+    </div>
+  </form>
+  <br><br>
+  <textarea id="jsonTextArea"></textarea>
+  <br><br>
+  <button type="button" onclick="fileSave()">Validate</button>
+  <div id="downloadContainer"></div>
+</body>
+</html>
