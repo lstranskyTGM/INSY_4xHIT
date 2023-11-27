@@ -1,0 +1,72 @@
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 5.3//EN"
+        "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<hibernate-mapping>
+
+    <!-- Article Entity -->
+    <class name="tgm.leo.Article" table="articles">
+        <id name="id" type="java.lang.Long">
+            <column name="id"/>
+            <generator class="identity"/>
+        </id>
+        <property name="description" type="java.lang.String">
+            <column name="description"/>
+        </property>
+        <property name="price" type="double">
+            <column name="price"/>
+        </property>
+        <property name="amount" type="int">
+            <column name="amount"/>
+        </property>
+    </class>
+
+    <!-- Client Entity -->
+    <class name="tgm.leo.Client" table="clients">
+        <id name="id" type="java.lang.Long">
+            <column name="id"/>
+            <generator class="identity"/>
+        </id>
+        <property name="name" type="java.lang.String">
+            <column name="name"/>
+        </property>
+        <property name="address" type="java.lang.String">
+            <column name="address"/>
+        </property>
+        <property name="city" type="java.lang.String">
+            <column name="city"/>
+        </property>
+        <property name="country" type="java.lang.String">
+            <column name="country"/>
+        </property>
+    </class>
+
+    <!-- Order Entity -->
+    <class name="tgm.leo.Order" table="orders">
+        <id name="id" type="java.lang.Long">
+            <column name="id"/>
+        </id>
+        <property name="createdAt" type="timestamp">
+            <column name="created_at"/>
+        </property>
+        <many-to-one name="client" class="tgm.markus.Client" column="client_id"/>
+        <set name="orderLines" inverse="true" cascade="all">
+            <key>
+                <column name="order_id"/>
+            </key>
+            <one-to-many class="tgm.markus.OrderLine"/>
+        </set>
+    </class>
+
+    <!-- OrderLine Entity -->
+    <class name="tgm.leo.OrderLine" table="order_lines">
+        <id name="id" type="java.lang.Long">
+            <column name="id"/>
+            <generator class="identity"/>
+        </id>
+        <many-to-one name="article" class="tgm.markus.Article" column="article_id"/>
+        <many-to-one name="order" class="tgm.markus.Order" column="order_id"/>
+        <property name="amount" type="int">
+            <column name="amount"/>
+        </property>
+    </class>
+
+</hibernate-mapping>
