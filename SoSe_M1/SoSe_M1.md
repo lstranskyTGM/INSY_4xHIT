@@ -59,7 +59,65 @@ Zum Demonstrieren von Fehlern, die durch Nebenlaeufigkeiten entstehen, gibt es d
 Der Shop soll nicht als Vorlage fuer sauberers API-Design dienen -- insbesondere das Abschicken von Bestellungen. Der Fokus lag hier auf einfachem Code und einfacher Testbarkeit im Webbrowser. (Zusatzfrage: Wie wuerdest du in einem Webservice einen API Endpoint fuer Bestellungen besser realisieren?)
 Bei Problemen/Unklarheiten, frage bitte fruehzeitig nach. Die Arbeitsanweisungen erforden keinen grossen Programmieraufwand.
 
+## Transaktionen und Isolation in Datenbanksystemen:
 
+## Motivation für Transaktionen
+
+Transaktionen stellen sicher, dass Datenbankoperationen sicher und zuverlässig ausgeführt werden, indem sie die ACID-Eigenschaften (Atomicity, Consistency, Isolation, Durability) erfüllen. Sie sind besonders wichtig in Szenarien wie:
+
+- **Banküberweisungen**, wo die Überweisung als eine einzige Operation behandelt wird, um Inkonsistenzen wie Geldverlust zu vermeiden.
+- **Webshop-Bestellungen**, um Probleme wie den Verkauf mehr Produkte als verfügbar zu verhindern.
+
+## ACID-Kriterien
+
+- **Atomicity**: Eine Transaktion wird entweder vollständig ausgeführt oder gar nicht.
+- **Consistency**: Transaktionen führen die Datenbank von einem konsistenten Zustand in einen anderen über.
+- **Isolation**: Transaktionen werden unabhängig voneinander ausgeführt, um Interferenzen zu vermeiden.
+- **Durability**: Einmal bestätigte Transaktionen bleiben dauerhaft gespeichert.
+
+## Verwendung von Transaktionen in SQL
+
+- **Initialisieren**: `BEGIN TRANSACTION` oder `BEGIN`
+- **Speichern**: `COMMIT`
+- **Abbrechen**: `ROLLBACK`
+- **Savepoints**: Ermöglichen das partielle Zurücksetzen von Transaktionen mit `SAVEPOINT <name>` und `ROLLBACK TO SAVEPOINT <name>`
+
+## Isolationsebenen und Fehlerklassen
+
+Isolationsebenen steuern, wie Transaktionsänderungen sichtbar sind und schützen vor:
+
+- **Dirty Read**: Lesen unbestätigter Änderungen.
+- **Non-Repeatable Read**: Unterschiedliche Ergebnisse beim wiederholten Lesen derselben Daten.
+- **Phantom Read**: Unterschiedliche Ergebnisse bei wiederholten Abfragen aufgrund neuer oder gelöschter Daten.
+- **Serialization Anomaly**: Inkonsistenzen durch parallele Transaktionen, die nicht serialisierbar sind.
+
+### Isolationsebenen in PostgreSQL
+
+- **Read Uncommitted**: Erlaubt alle Fehlerklassen. (In PostgreSQL behandelt wie Read Committed)
+- **Read Committed**: Verhindert Dirty Reads.
+- **Repeatable Read**: Verhindert Dirty Reads und Non-Repeatable Reads. In PostgreSQL auch Phantom Reads.
+- **Serializable**: Verhindert alle oben genannten Probleme.
+
+## Locking in PostgreSQL
+
+PostgreSQL verwendet Multi-Version Concurrency Control (MVCC) und Sperren, um Isolation zu gewährleisten und Deadlocks zu vermeiden.
+
+### Table-level Locks
+
+- Verschiedene Arten für unterschiedliche Operationen, z.B. `ACCESS SHARE` für `SELECT` und `ACCESS EXCLUSIVE` für Operationen, die die Tabelle sperren.
+
+### Row-level Locks
+
+- Ermöglichen detailliertere Sperren auf Zeilenebene, z.B. `FOR UPDATE` um Zeilen für die Aktualisierung zu sperren.
+
+### Deadlocks
+
+- Situationen, in denen Transaktionen sich gegenseitig blockieren, erfordern eine Auflösung durch das DBMS.
+
+### Pessimistic vs. Optimistic Locking
+
+- **Pessimistic Locking**: Sperren von Datensätzen während der Transaktion zur Konfliktvermeidung.
+- **Optimistic Locking**: Erkennung von Konflikten beim Commit ohne vorheriges Sperren, oft in der Anwendung implementiert.
 
 ## Quellen:
 
