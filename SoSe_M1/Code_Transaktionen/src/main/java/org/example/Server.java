@@ -277,9 +277,9 @@ public class Server {
                     int article_id = Integer.parseInt(params.get("article_id_"+i));
                     int amount = Integer.parseInt(params.get("amount_"+i));
 
-                    PreparedStatement stGetAmount = conn.prepareStatement("SELECT amount FROM articles WHERE id = ?");
-                    stGetAmount.setInt(1, article_id);
-                    ResultSet rsAmount = stGetAmount.executeQuery();
+                    PreparedStatement stLock = conn.prepareStatement("SELECT amount FROM articles WHERE id = ? FOR UPDATE");
+                    stLock.setInt(1, article_id);
+                    ResultSet rsAmount = stLock.executeQuery();
                     if (!rsAmount.next())
                         throw new IllegalArgumentException("Article does not exist");
                     int available = rsAmount.getInt(1);
@@ -307,11 +307,26 @@ public class Server {
                     stInsert.executeUpdate();
                 }
 
+                // Commit transaction for article processing
+                conn.commit();
+
                 response = String.format("{\"order_id\": %d}", order_id);
             } catch (SQLException throwables) {
+                try {
+                    // Rollback transaction
+                    conn.rollback();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
                 throwables.printStackTrace();
-            } catch (IllegalArgumentException iae) {
-                response = String.format("{\"error\":\"%s\"}", iae.getMessage());
+            } catch (RuntimeException re) {
+                try {
+                    // Rollback transaction
+                    conn.rollback();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+                response = "{\"error\":\"Random error occurred\"}";
             }
 
             answerRequest(t, response);
