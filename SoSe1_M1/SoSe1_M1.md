@@ -7,6 +7,7 @@ Datum: **14.02.2024**
 ## Projektbeschreibung
 
 ### Ausgangslage
+
 Gegeben ist ein fertiges Programm, ein Mini-Webshop, der aus einem einfachen Webservice besteht. Leider wurde bei der Entwicklung komplett auf Nebenlaeufigkeiten vergessen, wodurch im Webshop verschiedene Fehler auftreten koennen. Deine Aufgabe ist es nun, diese Fehler zu beseitigen. Richte zunaechst eine leere Postgres-Datenbank ein und lege die entsprechenden Tabellen und Testdaten an, indem du die gegebene webshop.sql ausfuehrst:
 
 ```postgres
@@ -24,9 +25,11 @@ dependencies {
 ```
 
 ### Funktionsweise des Webshops
+
 Standardmaessig laeuft der Webshop auf Port 8000; falls dieser Port bei dir belegt ist, kannst du ihn mittels dem Property Server.port aendern. Du kannst das laufende Webservice dann entsprechend unter http://127.0.0.1:8000 aufrufen. Wie du siehst, existieren Methoden zum Anzeigen von Kunden, Bestellungen, und Artikeln, sowie eine Methode zum Anzeigen genereller Statistiken und zum Aufgeben von Bestellungen. Alle Methoden koennen im Browser per Adresszeile (d.h. per GET-Request) aufgerufen werden und liefern eine Antwort im JSON-Format.
 
 ### Transaktionen in JDBC
+
 Die Dokumentation zu Transaktionen in JDBC findest du unter https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html. Eine neue Transaktion startest du (wenn conn deine Verbindung zur Datenbank ist), indem du mittels conn.setAutoCommit(false) Postgres anweist, bei einer neuen Query automatisch eine Transaktion zu starten. Mit conn.commit() laesst sich diese dann committen, waehrend sie sich mit conn.rollback() wieder abbrechen laesst. Das Isolation Level laesst sich vor der ersten Query mittels conn.setTransactionIsolation(<isolation level>) setzen.    
 
 ## Aufgaben:
@@ -54,6 +57,7 @@ ALTER USER postgres WITH PASSWORD 'newpassword';
 4. Anzeige von Statistiken Der Aufruf von http://127.0.0.1:8000/stats liefert Statistiken ueber Bestellungen nach Laendern aufgeschluesselt. Wird waehrend dem Erstellen der Statistik eine Bestellung abgeschickt, so kann diese Statistik inkonsistent werden (zB. in der Uebersicht weniger Bestellungen anfuehren, als spaeter in der Detailsansicht). Demonstriere dieses Verhalten stelle danach sicher, dass solche Phaenomene ausgeschlossen werden koennen. Um die Performance nicht zu beeintraechtigen soll deine Loesung aber keine Locks verwenden, sondern durch Setzen eines entsprechenden Isolation Levels realisiert werden.
 
 ### Anmerkungen
+
 Parallele Requests auf das Webservice kannst du auf der Kommandozeile mit Tools wie curl, generell mit Anwendungen wie Postman, aber auch einfach mit deinem Webbrowser simulieren. Beachte bei letzterem, dass es noetig sein kannst, dass du zwei verschiedene Browser wir Firefox und Chrome verwendest, da zB Chrome gerne ansich parallele Requests zum gleichen Server trotzdem hintereinander ausfuehrt.
 Zum Demonstrieren von Fehlern, die durch Nebenlaeufigkeiten entstehen, gibt es die Methode sleep(<seconds>), mit der du den aktuellen Thread fuer eine bestimmte Anzahl an Sekunden warten lassen kannst.
 Der Shop soll nicht als Vorlage fuer sauberers API-Design dienen -- insbesondere das Abschicken von Bestellungen. Der Fokus lag hier auf einfachem Code und einfacher Testbarkeit im Webbrowser. (Zusatzfrage: Wie wuerdest du in einem Webservice einen API Endpoint fuer Bestellungen besser realisieren?)
