@@ -46,8 +46,8 @@ Die Funktion `TO_CHAR(bdatum, 'YYYY')` wandelt das Datum in einen String um, wod
 CREATE INDEX idx_bdatum_year ON bestellung (EXTRACT(YEAR FROM bdatum));
 
 SELECT bnr, bstatus, bdatum  
-FROM bestellung
-WHERE EXTRACT(YEAR FROM bdatum) = 2017;
+    FROM bestellung
+    WHERE EXTRACT(YEAR FROM bdatum) = 2017;
 ```
 
 ### Beispiel 2:
@@ -76,7 +76,28 @@ Die Query sucht nach einem spezifischen `bstatus` und dem neuesten `bdatum`. Der
 
 #### Optimierung
 
-/
+```sql
+-- Create Temporary Column
+ALTER TABLE bestellung ADD COLUMN bstatus_short TEXT;
+
+-- Extract Numbers from bstatus
+UPDATE bestellung
+SET bstatus_short = SUBSTRING(bstatus FROM 'bstatus_([0-9]+)');
+
+-- Original Column löschen und neue Column umbenennen
+ALTER TABLE bestellung DROP COLUMN bstatus;
+ALTER TABLE bestellung RENAME COLUMN bstatus_short TO bstatus;
+
+-- Or Rename Columns
+ALTER TABLE bestellung RENAME COLUMN bstatus TO bstatus_old;
+ALTER TABLE bestellung RENAME COLUMN bstatus_short TO bstatus;
+
+-- DESC hinzufügen um ein re-sorting der Daten zu umgehen
+CREATE INDEX idx_zusammen_desc ON bestellung_id (bstatus, bdatum DESC);
+
+-- Index mit allen Spalten erstellen
+CREATE INDEX idx_zusammen_covering ON bestellung_id (bstatus, bdatum DESC) INCLUDE (id);
+```
 
 ### Beispiel 3:
 
@@ -113,8 +134,6 @@ Koennen die gegebenen Queries den Index effizient nutzen? Begruende deine Antwor
 CREATE INDEX idx_vstueckz ON artikel (vstueckz);
 ```
 
-(Nach Index filtern)
-
 ### Beispiel 4:
 
 #### Query
@@ -141,7 +160,7 @@ Unterscheiden sich die beiden Queries stark in ihrer Performance? Falls ja, waru
 -- Umgekehrter Index fuer Suffix-Suche
 CREATE INDEX idx_emails_reverse ON kunde (reverse(email));
 
--- 
+-- Umgekehrter Index fuer Suffix-Suche mit varchar_pattern_ops
 CREATE INDEX idx_emails_reverse_suffix ON kunde (reverse(email) varchar_pattern_ops);
 ```
 
@@ -170,7 +189,15 @@ Die Query sollte den Index effektiv nutzen, da beide Bedingungen (Datum und Kund
 
 #### Optimierung
 
-/
+```sql
+-- Id als führenden Index-Schlüssel setzen
+CREATE INDEX idx_bestellung_id ON bestellung (id, bdatum, kunde_id);
+
+-- Index mit allen Spalten erstellen
+CREATE INDEX idx_bestellung_covering ON bestellung (bdatum, kunde_id) INCLUDE (id);
+```
+
+(Optimierung nicht möglich)
 
 ### Beispiel 6:
 
@@ -185,7 +212,16 @@ SELECT id from bestellung where bdatum > '2017-01-01' and bdatum <= '2017-01-02'
 
 #### Antwort
 
+Prepared Statements können die Leistung einer Datenbankabfrage verschlechtern, weil sie einen allgemeinen Ausführungsplan erstellen, der für alle möglichen Parameterwerte funktioniert. Dies kann suboptimal sein, wenn spezifische Datenverteilungen vorliegen.
 
+**Beispiel**:
+Anhnand des Beispiels erstellt diese Abfrage einen generischen Plan. Dieser Plan könnte ineffizient werden, wenn bestimmte Zeiträume besonders viele Daten enthalten, da der Plan nicht speziell für diese Bedingungen optimiert ist.
+
+- **Generischer Plan**: Nicht optimal für spezifische Datenverteilungen oder ungewöhnliche Bedingungen.
+- **Ineffiziente Indexnutzung**: Bei datenintensiven Zeiträumen könnte der Plan ineffiziente Zugriffsmethoden wie Index Scans über zu viele Datenpunkte nutzen, anstatt effizientere Vollscans zu verwenden.
+
+**Fazit**: 
+Generische Ausführungspläne von Prepared Statements sind nicht immer die beste Wahl, besonders wenn die Datenverteilung ungleich ist oder sich häufig ändert. In solchen Fällen könnte ein dynamisch erstellter Plan direkt vom DBMS effizienter sein.
 
 ## Probleme
 
