@@ -42,12 +42,17 @@ Die Funktion `TO_CHAR(bdatum, 'YYYY')` wandelt das Datum in einen String um, wod
 #### Optimierung
 
 ```sql
--- Das genaue Datum extrahieren
+-- Das genaue Jahr extrahieren
 CREATE INDEX idx_bdatum_year ON bestellung (EXTRACT(YEAR FROM bdatum));
 
-SELECT bnr, bstatus, bdatum  
+EXPLAIN ANALYSE SELECT bnr, bstatus, bdatum
     FROM bestellung
     WHERE EXTRACT(YEAR FROM bdatum) = 2017;
+
+-- Alternative (besser): Datensätze nach Datumsbereich (2017 Anfang-Ende) selektieren -> kein zusätzlicher Index erforderlich
+EXPLAIN ANALYSE SELECT bnr, bstatus, bdatum
+    FROM bestellung
+    WHERE bdatum >= to_date(2017::varchar, 'YYYY') AND bdatum < to_date(2018::varchar, 'YYYY');
 ```
 
 ### Beispiel 2:
@@ -191,10 +196,10 @@ Die Query sollte den Index effektiv nutzen, da beide Bedingungen (Datum und Kund
 
 ```sql
 -- Id als führenden Index-Schlüssel setzen
-CREATE INDEX idx_bestellung_id ON bestellung (id, bdatum, kunde_id);
+CREATE INDEX idx_bestellung_id ON bestellung (kunde_id, bdatum);
 
 -- Index mit allen Spalten erstellen
-CREATE INDEX idx_bestellung_covering ON bestellung (bdatum, kunde_id) INCLUDE (id);
+CREATE INDEX idx_bestellung_covering ON bestellung (kunde_id, bdatum) INCLUDE (id);
 ```
 
 (Optimierung nicht möglich)
