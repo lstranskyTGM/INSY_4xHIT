@@ -1,9 +1,5 @@
 # UE (GK) - Optimierung von Datenbankabfragen
 
-Verfasser: **Leonhard Stransky, 4AHIT**
-
-Datum: **10.04.2024**
-
 ## Voraussetzungen
 
 Starte deine Postgres-Instanz aus den letzten Aufgabenstellungen und lege eine leere Datenbank an. Anbei findest du eine Webshop-Testdatenbank mit einigen Beispieldaten (10000 Datensaetze pro Tabelle). Importiere diese Daten zunaechst mit
@@ -49,10 +45,15 @@ EXPLAIN ANALYSE SELECT bnr, bstatus, bdatum
     FROM bestellung
     WHERE EXTRACT(YEAR FROM bdatum) = 2017;
 
--- Alternative (besser): Datensätze nach Datumsbereich (2017 Anfang-Ende) selektieren -> kein zusätzlicher Index erforderlich
+-- Alternative
 EXPLAIN ANALYSE SELECT bnr, bstatus, bdatum
     FROM bestellung
     WHERE bdatum >= to_date(2017::varchar, 'YYYY') AND bdatum < to_date(2018::varchar, 'YYYY');
+
+-- Alternative
+EXPLAIN ANALYSE SELECT bnr, bstatus, bdatum
+    FROM bestellung
+    WHERE bdatum = to_date(2017::varchar, 'YYYY');
 ```
 
 ### Beispiel 2:
@@ -217,15 +218,29 @@ SELECT id from bestellung where bdatum > '2017-01-01' and bdatum <= '2017-01-02'
 
 #### Antwort
 
-Prepared Statements können die Leistung einer Datenbankabfrage verschlechtern, weil sie einen allgemeinen Ausführungsplan erstellen, der für alle möglichen Parameterwerte funktioniert. Dies kann suboptimal sein, wenn spezifische Datenverteilungen vorliegen.
+Prepared statements ist ein Feature, dass einen ermöglicht die selbe (oder ähnliche) Query mehrmals mit hoher Effizienz auszuführen. 
+
+1. **Prepare:** Ein Query template wird erstellt und an die Datenbank gesendet. Dabei werden Parameter verwendet, die später durch Werte ersetzt werden.
+
+Die Datenbank kompiliert, analysiert und schreibt den Query um und erstellt einen Ausführungsplan. Dieser Plan wird dann als Serverseitiges Objekt gespeichert.
+
+1. **Execute:** Dabei werden im prepared statement Parameter durch Werte ersetzt. Daraufhin wird das ganze geplant und ausgeführt. Dies umgeht die Notwendigkeit den Query jedes mal neu zu kompilieren, analysieren und optimieren.
+
+```sql
+-- Example
+PREPARE name [ ( data_type [, ...] ) ] AS statement
+```
+
+Nach dem Beenden einer Session werden die prepared statements alle wieder verworfen. Daher muss es jedes mal neu erstellt werden. Das bedeutet auch, dass ein prepared statement nicht von mehreren database clients gleichzeitig verwendet werden kann. Manuell können pepared statements mit dem Befehl `DEALLOCATE` gelöscht werden.
+
+Prepared Statements können die Leistung einer Datenbankabfrage auch verschlechtern. In manchen Situationen wird ein allgemeiner Ausführungsplan erstellt, welcher für alle mögliche Parameterwerte angepasst wird und funktionieren muss. Dies kann bei sepzifischen Datenverteilungen suboptimal sein.
 
 **Beispiel**:
-Anhnand des Beispiels erstellt diese Abfrage einen generischen Plan. Dieser Plan könnte ineffizient werden, wenn bestimmte Zeiträume besonders viele Daten enthalten, da der Plan nicht speziell für diese Bedingungen optimiert ist.
+Anhand des Beispiels könnte ein generischer Plan ineffizient werden, wenn beispielsweise bestimmte Zeiträume besonders viele Daten enthalten. Der Plan ist nicht speziell für diese Bedingungen optimiert.
 
 - **Generischer Plan**: Nicht optimal für spezifische Datenverteilungen oder ungewöhnliche Bedingungen.
 - **Ineffiziente Indexnutzung**: Bei datenintensiven Zeiträumen könnte der Plan ineffiziente Zugriffsmethoden wie Index Scans über zu viele Datenpunkte nutzen, anstatt effizientere Vollscans zu verwenden.
 
-**Fazit**: 
 Generische Ausführungspläne von Prepared Statements sind nicht immer die beste Wahl, besonders wenn die Datenverteilung ungleich ist oder sich häufig ändert. In solchen Fällen könnte ein dynamisch erstellter Plan direkt vom DBMS effizienter sein.
 
 ## Probleme
@@ -259,6 +274,8 @@ Fasse deine Ausarbeitungen und Antworten in einem Protokoll zusammen, gib dieses
 [2] https://use-the-index-luke.com/sql/where-clause
 
 [3] [webshop.zip](https://elearning.tgm.ac.at/pluginfile.php/106305/mod_assign/introattachment/0/webshop.zip?forcedownload=1)
+
+[4] https://www.postgresql.org/docs/current/sql-prepare.html
 
 
 
