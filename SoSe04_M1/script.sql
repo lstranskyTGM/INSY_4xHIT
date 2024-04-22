@@ -17,10 +17,15 @@ EXPLAIN ANALYSE SELECT bnr, bstatus, bdatum
     FROM bestellung
     WHERE EXTRACT(YEAR FROM bdatum) = 2017;
 
--- Alternative (besser): Datensätze nach Datumsbereich (2017 Anfang-Ende) selektieren -> kein zusätzlicher Index erforderlich
+-- Alternative
 EXPLAIN ANALYSE SELECT bnr, bstatus, bdatum
     FROM bestellung
     WHERE bdatum >= to_date(2017::varchar, 'YYYY') AND bdatum < to_date(2018::varchar, 'YYYY');
+
+-- Alternative
+EXPLAIN ANALYSE SELECT bnr, bstatus, bdatum
+    FROM bestellung
+    WHERE bdatum = to_date(2017::varchar, 'YYYY');
 
 ---- Beispiel 2:
 
