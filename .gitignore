@@ -1,2 +1,8 @@
+# SoSe05_M1
+/SoSe05_M1/DockerCompose/config/docker.ini
+/SoSe05_M1/DockerCompose/config/local.ini
+/SoSe05_M1/DockerCompose/config/server.key
+/SoSe05_M1/DockerCompose/config/server.crt
 
+# Other
 *.zip

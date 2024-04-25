@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  couchdb:
+    image: couchdb:latest
+    container_name: dev-couchdb
+    ports:
+      - "5984:5984"
+      - "6984:6984"
+    volumes:
+      - ./config:/opt/couchdb/etc/local.d
+    environment:
+      COUCHDB_USER: admin
+      COUCHDB_PASSWORD: root
+      COUCHDB_HTTPS_KEY_FILE: /opt/couchdb/etc/local.d/server.key
+      COUCHDB_HTTPS_CERT_FILE: /opt/couchdb/etc/local.d/server.crt
+      COUCHDB_HTTPD_BIND_ADDRESS: 0.0.0.0
+      COUCHDB_ENSURE_DBS_EXIST: "_users,_replicator"  # Ensure essential system databases are created
