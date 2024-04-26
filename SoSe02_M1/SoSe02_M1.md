@@ -223,6 +223,27 @@ CREATE TRIGGER new_transfer BEFORE INSERT ON transfers
 FOR EACH ROW EXECUTE FUNCTION update_accounts_safe();
 ```
 
+### Showcase
+
+```sql
+-- Test Function
+SELECT meinefunktion(1, 2);
+
+-- Bilanz ausgeben
+SELECT bilanz_mit_steuer(2);
+SELECT bilanz(2);
+
+-- Transfer between users
+CALL transfer_direct(2, 1, 2000000000);
+CALL transfer_direct(1, 2, 100);
+
+-- Add Transfers to table
+INSERT INTO transfers (transfer_id, from_client_id, to_client_id, date, amount)
+    VALUES (80, 3, 4, '2024-03-18', 5.00);
+INSERT INTO transfers (transfer_id, from_client_id, to_client_id, date, amount)
+    VALUES (80, 3, 4, '2024-03-18', 50000000000.00)
+```
+
 ## Zusammenfassung
 
 ### Functions:
@@ -300,6 +321,187 @@ CREATE TRIGGER account_creation_trigger
 AFTER INSERT ON accounts
 FOR EACH ROW
 EXECUTE FUNCTION log_account_creation();
+```
+
+## EK
+
+### Aufgabenstellung
+
+Erstelle eine Tabelle `statistics`, welche fuer jeden Tag (an dem Ueberweisungen durchgefuehrt wurden) statistische Daten sammelt:
+
+```sql
+CREATE TABLE statistics (
+    date date,
+    sum_amount decimal,
+    avg_amount decimal,
+    max_amount decimal,
+    taxes decimal 
+);
+```
+
+wobei `sum_amount` die Gesamtsumme der an diesem Tag getaetigten Ueberweisungen bezeichnet, `avg_amount` den durchschnittlichen Betrag der Ueberweisungen, `max_amount` die groesste Ueberweisung und `taxes` die insgesamt an diesem Tag angefallenen Steuern (2% bis 2019 und 1% ab 2020). Erstelle eine Procedure `calc_statistics()`, die die `statistics`-Tabelle anhand der in der `transfers`-Tabelle gespeicherten Ueberweisungen komplett befuellt.
+
+### Umsetzung
+
+Die zur Umsetzung verwendete Programmiersprache ist freigestellt. Neben PL/pgSQL unterstuetzt Postgres von sich aus auch noch andere prozedurale Programmiersprachen wie zB Python [1] oder Perl. Zusaetzlich gibt es open source Projekte fuer die Unterstuetzung von JavaScript [2], PHP [3], oder Java [4].
+
+Falls du dich entschliesst, weiterhin PL/pgSQL [6] zu verwenden, wirst du zum Auslesen der Datensaetze das Konzept eines **Cursors** benoetigen: Ein Cursor bezeichnet im Prinzip das Ergebnis einer Query und erlaubt es dir, auf die einzelnen Ergebnisse der Query in einer Schleife Schritt fuer Schritt zuzugreifen, wie zum Beispiel unter [5] beschrieben. Grundsaetzlich wird ein Cursor zunaechst unter DECLARE deklariert; in der Funktion kann er dann mit `OPEN cursorname` geoeffnet werden - Hier wird die eigentliche Query ausgefuehrt. In der LOOP --- END LOOP Schleife wird bei jedem Durchlauf mittels `FETCH cursorname INTO variablenname` das naechste Ergebnis in einer Variablen abgelegt und kann weiter bearbeitet werden. Abgebrochen wird die Schleife mit `EXIT WHEN NOT FOUND` wenn alle Datensaetze abgearbeitet wurden. Der folgende Sourcecode iteriert zum Beispiel ueber alle Jahre, in denen Ueberweisungen getaetigt wurden. - Fuer die Loesung der Uebungsaufgabe wirst du analog ueber alle Tage iterieren muessen.
+
+```sql
+DECLARE 
+  y INTEGER;
+  years CURSOR FOR  SELECT DISTINCT DATE_PART('year', date)  FROM transfers; 
+BEGIN  
+   OPEN years;
+   LOOP 
+     FETCH years INTO y; 
+     EXIT WHEN NOT FOUND;
+     -- In "y" steht jetzt das jeweilige Jahr
+   END  LOOP;
+   CLOSE years;
+ END;
+```
+
+### Solution
+
+1. Create the `statistics` table:
+
+```sql
+CREATE TABLE statistics (
+    date date,
+    sum_amount decimal,
+    avg_amount decimal,
+    max_amount decimal,
+    taxes decimal
+);
+```
+
+2. Create the `calc_statistics()` procedure:
+
+```sql
+CREATE OR REPLACE PROCEDURE calc_statistics() 
+AS $$
+DECLARE
+    -- Declare variables for cursor and daily statistics
+    transfer_date RECORD;
+    daily_stats RECORD;
+    year_tax_rate NUMERIC;
+    daily_cursor CURSOR FOR SELECT DISTINCT date FROM transfers ORDER BY date;
+BEGIN
+    -- Open cursor to iterate over distinct transfer dates
+    OPEN daily_cursor;
+    LOOP
+        -- Fetch the next transfer date
+        FETCH daily_cursor INTO transfer_date;
+        -- Exit loop when no more dates are found
+        EXIT WHEN NOT FOUND;
+        
+        -- Determine the tax rate based on the year
+        IF DATE_PART('year', transfer_date.date) <= 2019 THEN
+            year_tax_rate := 0.02;  -- Tax rate of 2% up to 2019
+        ELSE
+            year_tax_rate := 0.01;  -- Tax rate of 1% from 2020
+        END IF;
+
+        -- Calculate daily statistics for the specific date
+        SELECT
+            SUM(amount) AS total_amount,
+            AVG(amount) AS average_amount,
+            MAX(amount) AS max_amount,
+            SUM(amount * year_tax_rate) AS total_taxes
+        INTO daily_stats
+        FROM transfers
+        WHERE date = transfer_date.date;  -- Filter transfers for the specific date
+
+        -- Insert the calculated statistics into the statistics table
+        INSERT INTO statistics (date, sum_amount, avg_amount, max_amount, taxes)
+        VALUES (
+            transfer_date.date, 
+            daily_stats.total_amount, 
+            daily_stats.average_amount, 
+            daily_stats.max_amount, 
+            daily_stats.total_taxes
+        );
+    END LOOP;
+    -- Close the cursor
+    CLOSE daily_cursor;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+1. Execute the `calc_statistics()` procedure:
+
+```sql
+CALL calc_statistics();
+```
+
+1. Function to generate random transactions:
+
+```sql
+CREATE OR REPLACE FUNCTION generate_random_transactions(days INTEGER, max_trans_per_day INTEGER)
+RETURNS void AS $$
+DECLARE
+    -- Declare variables for generating random transactions
+    v_current_date DATE;
+    num_transactions INTEGER;
+    i INTEGER;
+    j INTEGER;
+    from_client INTEGER;
+    to_client INTEGER;
+    trans_amount NUMERIC;
+    available_balance NUMERIC;
+    next_transfer_id INTEGER;
+BEGIN
+    -- Initialize the next_transfer_id
+    SELECT COALESCE(MAX(transfer_id), 0) + 1 INTO next_transfer_id FROM transfers;
+
+    -- Set the starting date for transactions
+    v_current_date := CURRENT_DATE - days;
+
+    FOR i IN 1..days LOOP
+        -- Randomly determine the number of transactions for the current day
+        num_transactions := FLOOR(RANDOM() * max_trans_per_day) + 1;
+
+        -- Generate random transactions for the current day
+        FOR j IN 1..num_transactions LOOP
+            -- Select a random 'from_client_id' that exists and has a positive balance
+            LOOP
+                from_client := (SELECT client_id FROM accounts WHERE amount > 10 ORDER BY RANDOM() LIMIT 1); -- Accounts with at least $10
+                SELECT amount INTO available_balance FROM accounts WHERE client_id = from_client;
+
+                -- Break the loop if a valid client with a positive balance is found
+                EXIT WHEN available_balance IS NOT NULL AND available_balance > 10; -- Extra margin to avoid rounding issues
+            END LOOP;
+
+            -- Select a random 'to_client_id' ensuring it is not the same as 'from_client_id'
+            LOOP
+                to_client := (SELECT client_id FROM accounts WHERE client_id <> from_client ORDER BY RANDOM() LIMIT 1);
+
+                -- Break the loop if a valid client is found
+                EXIT WHEN to_client IS NOT NULL;
+            END LOOP;
+
+            -- Determine a safe transaction amount
+            -- This amount should not exceed the 'available_balance' of 'from_client'
+            trans_amount := ROUND((RANDOM() * (LEAST(500, available_balance - 10) - 10) + 10)::NUMERIC, 2); -- Ensuring there's always a $10 buffer
+
+            -- Insert the generated transaction into 'transfers'
+            INSERT INTO transfers (transfer_id, from_client_id, to_client_id, date, amount)
+            VALUES (next_transfer_id, from_client, to_client, v_current_date, trans_amount);
+            next_transfer_id := next_transfer_id + 1; -- Increment the transfer_id
+        END LOOP;
+
+        -- Increment the date for the next day of transactions
+        v_current_date := v_current_date + 1;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+5. Execute function to generate random transactions:
+
+```sql
+SELECT generate_random_transactions(10, 500);
 ```
 
 ## Quellen:
