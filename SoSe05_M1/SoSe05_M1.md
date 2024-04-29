@@ -1,8 +1,8 @@
-# [Modul]
+# SoSe05 CouchDB - PouchDB (GK/EK)
 
 Verfasser: **Leonhard Stransky, 4AHIT**
 
-Datum: **DD.MM.YYYY**
+Datum: **20.04.2024**
 
 ## Aufgabenstellung CouchDB – PouchDB
 
@@ -76,15 +76,17 @@ services:
     image: couchdb:latest
     container_name: dev-couchdb
     ports:
+      - "5984:5984"
       - "6984:6984"
     volumes:
-      - ./ssl_keys:/opt/couchdb/etc/local.d
+      - ./config:/opt/couchdb/etc/local.d
     environment:
       COUCHDB_USER: admin
       COUCHDB_PASSWORD: root
       COUCHDB_HTTPS_KEY_FILE: /opt/couchdb/etc/local.d/server.key
       COUCHDB_HTTPS_CERT_FILE: /opt/couchdb/etc/local.d/server.crt
       COUCHDB_HTTPD_BIND_ADDRESS: 0.0.0.0
+      COUCHDB_ENSURE_DBS_EXIST: "_users,_replicator"  # Ensure essential system databases are created
 ```
 
 8. Create local.ini File
@@ -152,6 +154,8 @@ curl -k https://admin:password@localhost:6984/
 [3] https://pouchdb.com/guides/setup-couchdb.html
 
 [4] https://docs.couchdb.org/en/stable/
+
+
 
 
 
