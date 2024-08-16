@@ -511,18 +511,3 @@ SELECT generate_random_transactions(10, 500);
 [2] https://www.postgresql.org/docs/current/plpgsql.html
 
 [3] https://www.postgresql.org/docs/12/trigger-definition.html
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
